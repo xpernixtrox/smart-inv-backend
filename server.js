@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const app = express();
 const PORT = 3001;
@@ -10,20 +11,47 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-const DATA_FILE = path.join(__dirname, 'data.json');
+// Determine the writable data file path
+const LOCAL_DATA_FILE = path.join(__dirname, 'data.json');
+let DATA_FILE = LOCAL_DATA_FILE;
 
-// Helper: Ensure file exists
-const ensureDataFile = () => {
+// Helper: Ensure file exists and is writable
+const initializeDataFile = () => {
+    try {
+        // Check if we can write to the local file
+        fs.accessSync(LOCAL_DATA_FILE, fs.constants.W_OK);
+        DATA_FILE = LOCAL_DATA_FILE;
+        console.log(`Using local data file: ${DATA_FILE}`);
+    } catch (err) {
+        // If not writable (likely EROFS), use temp dir
+        console.warn("Local file is read-only. Switching to temporary storage.");
+        DATA_FILE = path.join(os.tmpdir(), 'data.json');
+        console.log(`Using temporary data file: ${DATA_FILE}`);
+
+        // If temp file doesn't exist, copy from local or init empty
+        if (!fs.existsSync(DATA_FILE)) {
+            if (fs.existsSync(LOCAL_DATA_FILE)) {
+                console.log("Copying existing data to temp file...");
+                const initialData = fs.readFileSync(LOCAL_DATA_FILE);
+                fs.writeFileSync(DATA_FILE, initialData);
+            } else {
+                console.log("Creating new empty data file in temp...");
+                fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2));
+            }
+        }
+    }
+
+    // Final check to ensure whatever file we picked exists
     if (!fs.existsSync(DATA_FILE)) {
-        console.log("Creating new data file...");
-        // Initialize with empty array or default structure if missing
         fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2));
     }
 };
 
 // Helper: Read Data
+// Helper: Read Data
 const readData = () => {
-    ensureDataFile();
+    // We assume initializeDataFile() was called at startup, but we can verify existence lightly
+    // or just let it fail if something deleted it mid-run
     try {
         const rawData = fs.readFileSync(DATA_FILE, 'utf8');
         return JSON.parse(rawData);
@@ -126,7 +154,7 @@ app.post('/add-product', (req, res) => {
 
 // Start Server
 app.listen(PORT, () => {
-    ensureDataFile(); // Initialize on start
+    initializeDataFile(); // Initialize on start
     console.log(`Server is running on http://localhost:${PORT}`);
     console.log(`Data stored in: ${DATA_FILE}`);
 });
