@@ -4,10 +4,8 @@ const cors = require("cors");
 const app = express();
 const PORT = 3001;
 
-
 app.use(cors());
-app.use(express.json({ limit: "10mb" })); 
-
+app.use(express.json());
 
 let products = [
   {
@@ -17,7 +15,6 @@ let products = [
     stock: 1,
     lowStockThreshold: 2,
     category: "Components",
-    image: "",
   },
   {
     id: 2,
@@ -26,7 +23,6 @@ let products = [
     stock: 4,
     lowStockThreshold: 5,
     category: "Wearables",
-    image: "",
   },
   {
     id: 3,
@@ -35,7 +31,6 @@ let products = [
     stock: 1,
     lowStockThreshold: 3,
     category: "Displays",
-    image: "",
   },
   {
     id: 4,
@@ -44,7 +39,6 @@ let products = [
     stock: 45,
     lowStockThreshold: 10,
     category: "Power",
-    image: "",
   },
   {
     id: 5,
@@ -53,17 +47,12 @@ let products = [
     stock: 3,
     lowStockThreshold: 1,
     category: "Robotics",
-    image: "",
   },
 ];
-
-
-
 
 app.get("/products", (req, res) => {
   res.json(products);
 });
-
 
 app.post("/update-stock", (req, res) => {
   const { id, newQuantity } = req.body;
@@ -83,18 +72,16 @@ app.post("/update-stock", (req, res) => {
   }
 
   products[productIndex].stock = newQuantity;
-
   res.json(products[productIndex]);
 });
 
-
 app.post("/add-product", (req, res) => {
-  const { name, price, stock, category, lowStockThreshold, image } = req.body;
+  const { name, price, stock, category, lowStockThreshold } = req.body;
 
   if (!name || price === undefined || stock === undefined || !category) {
-    return res.status(400).json({
-      error: "Missing required fields: name, price, stock, category.",
-    });
+    return res
+      .status(400)
+      .json({ error: "Missing required fields: name, price, stock, category." });
   }
 
   const maxId = products.reduce((max, p) => (p.id > max ? p.id : max), 0);
@@ -106,14 +93,11 @@ app.post("/add-product", (req, res) => {
     stock: Number(stock),
     lowStockThreshold: Number(lowStockThreshold || 5),
     category,
-    image: image || "", 
   };
 
   products.push(newProduct);
-
   res.json(newProduct);
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
