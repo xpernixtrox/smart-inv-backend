@@ -5,7 +5,7 @@ const app = express();
 const PORT = 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "5mb" }));
 
 let products = [
   {
@@ -76,7 +76,7 @@ app.post("/update-stock", (req, res) => {
 });
 
 app.post("/add-product", (req, res) => {
-  const { name, price, stock, category, lowStockThreshold } = req.body;
+  const { name, price, stock, category, lowStockThreshold, image } = req.body;
 
   if (!name || price === undefined || stock === undefined || !category) {
     return res
@@ -93,6 +93,7 @@ app.post("/add-product", (req, res) => {
     stock: Number(stock),
     lowStockThreshold: Number(lowStockThreshold || 5),
     category,
+    ...(typeof image === "string" && image.trim() ? { image } : {}),
   };
 
   products.push(newProduct);
